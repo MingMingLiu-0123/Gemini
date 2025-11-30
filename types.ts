@@ -10,6 +10,17 @@ export enum TradeStatus {
   CANCELLED = 'CANCELLED'
 }
 
+// 新增：复盘详情接口
+export interface TradeReview {
+  rating: number; // 1-10分 交易质量打分
+  mood: string; // 交易时的心理状态 (如: 平静, 焦虑, 贪婪, 恐惧)
+  tags: string[]; // 标签 (如: "追涨杀跌", "完美执行", "消息面干扰")
+  chartUrl?: string; // TradingView 图表链接
+  mistakes?: string; // 犯了什么错？
+  improvements?: string; // 下次如何改进？
+  isReviewed: boolean; // 是否已复盘
+}
+
 export interface Trade {
   id: string;
   date: string;
@@ -41,7 +52,9 @@ export interface Trade {
   exitPrice?: number;
   pnl?: number;
   notes?: string;
-  lessons?: string; // For the "Daily Review" section
+  
+  // 复盘数据 (Optional)
+  review?: TradeReview;
 }
 
 export interface SystemSettings {
