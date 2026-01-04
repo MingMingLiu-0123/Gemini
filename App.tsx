@@ -18,181 +18,174 @@ enum View {
 const App: React.FC = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
 
+  const navigationItems = [
+    { view: View.DASHBOARD, label: '概览', icon: <LayoutDashboard size={20} />, shortLabel: '概览' },
+    { view: View.NEW_TRADE, label: '执行向导', icon: <PlusCircle size={20} />, shortLabel: '下单' },
+    { view: View.REVIEW, label: '复盘日志', icon: <ClipboardList size={20} />, shortLabel: '复盘' },
+    { view: View.LEARNING, label: '案例拆解', icon: <GraduationCap size={20} />, shortLabel: '案例' },
+    { view: View.RULES, label: '策略手册', icon: <BookOpen size={20} />, shortLabel: '策略' },
+  ];
+
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
-      {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-trade-secondary border-r border-slate-800 flex-shrink-0">
-        <div className="p-6 border-b border-slate-800">
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            TradeLogic<span className="text-trade-accent">Pro</span>
-          </h1>
-          <div className="text-xs text-slate-500 mt-1">一致性训练器</div>
-        </div>
-        
-        <nav className="p-4 space-y-2">
-          <NavButton 
-            active={view === View.DASHBOARD} 
-            onClick={() => setView(View.DASHBOARD)} 
-            icon={<LayoutDashboard size={20} />} 
-            label="仪表盘" 
-          />
-          <NavButton 
-            active={view === View.NEW_TRADE} 
-            onClick={() => setView(View.NEW_TRADE)} 
-            icon={<PlusCircle size={20} />} 
-            label="新交易向导" 
-          />
-          <NavButton 
-            active={view === View.REVIEW} 
-            onClick={() => setView(View.REVIEW)} 
-            icon={<ClipboardList size={20} />} 
-            label="复盘日志" 
-          />
-          <NavButton 
-            active={view === View.LEARNING} 
-            onClick={() => setView(View.LEARNING)} 
-            icon={<GraduationCap size={20} />} 
-            label="案例拆解" 
-          />
-          <NavButton 
-            active={view === View.RULES} 
-            onClick={() => setView(View.RULES)} 
-            icon={<BookOpen size={20} />} 
-            label="策略手册" 
-          />
-           <div className="pt-4 border-t border-slate-800 mt-4">
-            <NavButton 
-                active={view === View.SETTINGS} 
-                onClick={() => setView(View.SETTINGS)} 
-                icon={<SettingsIcon size={20} />} 
-                label="数据管理" 
-            />
+    <div className="flex flex-col h-full bg-trade-primary">
+      {/* Top Header - Mobile Only */}
+      <header className="md:hidden bg-trade-secondary px-4 py-3 border-b border-slate-800 flex justify-between items-center shrink-0">
+        <h1 className="text-xl font-bold text-white tracking-tight">
+          TradeLogic<span className="text-trade-accent">Pro</span>
+        </h1>
+        <button onClick={() => setView(View.SETTINGS)} className="text-slate-400 p-1">
+          <SettingsIcon size={20} />
+        </button>
+      </header>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Desktop Sidebar */}
+        <aside className="hidden md:flex w-64 bg-trade-secondary border-r border-slate-800 flex-col shrink-0">
+          <div className="p-6 border-b border-slate-800">
+            <h1 className="text-2xl font-bold text-white tracking-tight">
+              TradeLogic<span className="text-trade-accent">Pro</span>
+            </h1>
+            <div className="text-xs text-slate-500 mt-1">一致性训练器</div>
           </div>
-        </nav>
-
-        <div className="absolute bottom-0 w-full p-4 border-t border-slate-800">
-           <div className="flex items-center gap-3 text-slate-500 text-sm">
-             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-             系统运行中
-           </div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-trade-primary p-4 md:p-8">
-        <div className="max-w-6xl mx-auto">
           
-          {view === View.DASHBOARD && (
-            <>
-              <div className="flex justify-between items-end mb-8">
-                <div>
-                    <h2 className="text-3xl font-bold text-white">交易驾驶舱</h2>
-                    <p className="text-slate-400 mt-2">欢迎回来。请记住：生存第一，盈利第二。</p>
-                </div>
-                <div className="flex gap-3">
-                    <button 
-                        onClick={() => setView(View.REVIEW)}
-                        className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
-                    >
-                        <ClipboardList size={18} /> 去复盘
+          <nav className="p-4 space-y-2 flex-1 overflow-y-auto">
+            {navigationItems.map(item => (
+              <NavButton 
+                key={item.view}
+                active={view === item.view} 
+                onClick={() => setView(item.view)} 
+                icon={item.icon} 
+                label={item.label} 
+              />
+            ))}
+            <div className="pt-4 border-t border-slate-800 mt-4">
+              <NavButton 
+                  active={view === View.SETTINGS} 
+                  onClick={() => setView(View.SETTINGS)} 
+                  icon={<SettingsIcon size={20} />} 
+                  label="数据管理" 
+              />
+            </div>
+          </nav>
+
+          <div className="p-4 border-t border-slate-800 text-xs text-slate-500 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+            实时系统就绪
+          </div>
+        </aside>
+
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden safe-pb relative pb-20 md:pb-8 p-4 md:p-8">
+          <div className="max-w-6xl mx-auto h-full">
+            
+            {view === View.DASHBOARD && (
+              <div className="space-y-6">
+                <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+                  <div>
+                    <h2 className="text-2xl md:text-3xl font-bold text-white">交易驾驶舱</h2>
+                    <p className="text-slate-400 mt-1 text-sm md:text-base">欢迎回来。记住：控制亏损，盈利自理。</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => setView(View.REVIEW)} className="flex-1 md:flex-none bg-slate-700 hover:bg-slate-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2">
+                      <ClipboardList size={18} /> 复盘
                     </button>
-                    <button 
-                        onClick={() => setView(View.NEW_TRADE)}
-                        className="bg-trade-accent hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium shadow-lg shadow-blue-900/20 flex items-center gap-2"
-                    >
-                        <PlusCircle size={18} /> 开始新交易
+                    <button onClick={() => setView(View.NEW_TRADE)} className="flex-1 md:flex-none bg-trade-accent hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2">
+                      <PlusCircle size={18} /> 新交易
                     </button>
+                  </div>
+                </header>
+                <Dashboard />
+              </div>
+            )}
+
+            {view === View.NEW_TRADE && (
+              <div className="h-full">
+                <button onClick={() => setView(View.DASHBOARD)} className="text-slate-500 hover:text-white mb-4 text-sm flex items-center gap-1">← 返回概览</button>
+                <StepWizard onComplete={() => setView(View.DASHBOARD)} />
+              </div>
+            )}
+
+            {view === View.REVIEW && (
+              <div className="h-full flex flex-col">
+                <header className="mb-4">
+                  <button onClick={() => setView(View.DASHBOARD)} className="text-slate-500 hover:text-white mb-2 text-sm flex items-center gap-1">← 返回概览</button>
+                  <h2 className="text-2xl font-bold text-white">交易复盘分析</h2>
+                </header>
+                <div className="flex-1 min-h-0">
+                  <TradeReview />
                 </div>
               </div>
-              <Dashboard />
-            </>
-          )}
+            )}
 
-          {view === View.NEW_TRADE && (
-             <div className="animate-slideIn">
-                <div className="mb-6">
-                    <button onClick={() => setView(View.DASHBOARD)} className="text-slate-500 hover:text-white mb-2 text-sm">← 返回仪表盘</button>
-                    <h2 className="text-3xl font-bold text-white">新交易执行</h2>
+            {view === View.LEARNING && (
+              <div className="h-full flex flex-col">
+                <header className="mb-4">
+                  <button onClick={() => setView(View.DASHBOARD)} className="text-slate-500 hover:text-white mb-2 text-sm flex items-center gap-1">← 返回概览</button>
+                  <h2 className="text-2xl font-bold text-white">案例盲测中心</h2>
+                </header>
+                <div className="flex-1 min-h-0">
+                  <LearningCenter />
                 </div>
-                <StepWizard onComplete={() => setView(View.DASHBOARD)} />
-             </div>
-          )}
+              </div>
+            )}
 
-          {view === View.REVIEW && (
-             <div className="animate-slideIn">
-                <div className="mb-6">
-                    <button onClick={() => setView(View.DASHBOARD)} className="text-slate-500 hover:text-white mb-2 text-sm">← 返回仪表盘</button>
-                    <h2 className="text-3xl font-bold text-white">交易复盘 & 心理分析</h2>
-                    <p className="text-slate-400 mt-1 text-sm">不要浪费每一次亏损。诚实面对自己，找出一致性问题。</p>
+            {view === View.RULES && (
+              <div className="bg-trade-secondary p-5 md:p-8 rounded-xl border border-slate-700 prose prose-invert max-w-none">
+                <h2 className="text-xl md:text-2xl font-bold mb-6">1.8W 交易协议 (V1.0)</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 not-prose">
+                  <RuleSection title="1. 核心规则" items={['本金：1.8W CNY', '单笔风险：最大 ¥360', '核心周期：D1 趋势 -> H1 区域', '品种：甲醇/TA/螺纹等低保证金品种']} />
+                  <RuleSection title="2. 执行五步" items={['D1 战略定方向', 'H1 战术定区域', 'M15 信号定刹车', 'M5 结构定狙击', '风控计算定仓位']} />
+                  <RuleSection title="3. 复盘准则" items={['只看过程，不看结果', '违背规则即是失败', '每天只修正一个细节']} className="md:col-span-2" />
                 </div>
-                <TradeReview />
-             </div>
-          )}
+              </div>
+            )}
 
-          {view === View.LEARNING && (
-             <div className="animate-slideIn">
-                <div className="mb-6">
-                    <button onClick={() => setView(View.DASHBOARD)} className="text-slate-500 hover:text-white mb-2 text-sm">← 返回仪表盘</button>
-                    <h2 className="text-3xl font-bold text-white">经典案例拆解 (Case Studies)</h2>
-                    <p className="text-slate-400 mt-1 text-sm">反复阅读这些经典模型，直到它们刻入你的潜意识。</p>
-                </div>
-                <LearningCenter />
-             </div>
-          )}
+            {view === View.SETTINGS && <Settings />}
 
-          {view === View.RULES && (
-            <div className="bg-trade-secondary p-8 rounded-lg border border-slate-700 prose prose-invert max-w-none">
-                <h2>1.8W 交易系统协议</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 not-prose">
-                    <div className="bg-slate-800 p-6 rounded border border-slate-600">
-                        <h3 className="text-xl font-bold text-white mb-4">1. 核心规则</h3>
-                        <ul className="list-disc pl-5 text-slate-300 space-y-2">
-                            <li><strong>本金：</strong> ~1.8W CNY</li>
-                            <li><strong>单笔风险：</strong> 最大 2-3% (¥360)</li>
-                            <li><strong>核心理念：</strong> D1 顺势跟踪 + H1 关键位反转</li>
-                            <li><strong>推荐品种：</strong> 低保证金品种 (甲醇, PTA, PVC, 螺纹)</li>
-                        </ul>
-                    </div>
-                    <div className="bg-slate-800 p-6 rounded border border-slate-600">
-                        <h3 className="text-xl font-bold text-white mb-4">2. 执行五步法</h3>
-                        <ol className="list-decimal pl-5 text-slate-300 space-y-2">
-                            <li><strong>D1 趋势：</strong> 检查 MA60 方向 & 道氏结构。</li>
-                            <li><strong>H1 区域：</strong> 寻找支撑/压力。耐心等待。</li>
-                            <li><strong>30m/15m 信号：</strong> 出现 Pinbar / 吞没形态。</li>
-                            <li><strong>5m 触发：</strong> 突破入场 (Box/Trendline)。</li>
-                            <li><strong>执行：</strong> 严格计算手数 (以损定量)。</li>
-                        </ol>
-                    </div>
-                    <div className="bg-slate-800 p-6 rounded border border-slate-600 md:col-span-2">
-                        <h3 className="text-xl font-bold text-white mb-4">3. 复盘标准</h3>
-                        <ul className="list-disc pl-5 text-slate-300 space-y-2">
-                            <li><strong>满分交易：</strong> 符合 D1 + H1 + 信号 + 触发 + 风控，无论盈亏。</li>
-                            <li><strong>低分交易：</strong> 违背任意一条规则（如逆势、不止损、提前进场），即使赚钱也是错误的。</li>
-                            <li><strong>改进原则：</strong> 每次复盘只找出一个需要改进的点，并在下一次交易中专注修正。</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-          )}
+          </div>
+        </main>
 
-          {view === View.SETTINGS && (
-            <Settings />
-          )}
-
-        </div>
-      </main>
+        {/* Mobile Tab Bar */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-trade-secondary/95 backdrop-blur-md border-t border-slate-800 flex justify-around items-center px-2 py-2 shrink-0 z-50 pb-[max(env(safe-area-inset-bottom),0.5rem)]">
+          {navigationItems.map(item => (
+            <button 
+              key={item.view}
+              onClick={() => setView(item.view)}
+              className={`flex flex-col items-center justify-center gap-1 px-3 py-1 rounded-lg transition-all ${view === item.view ? 'text-trade-accent' : 'text-slate-400'}`}
+            >
+              {item.icon}
+              <span className="text-[10px] font-medium">{item.shortLabel}</span>
+              {view === item.view && <span className="w-1 h-1 rounded-full bg-trade-accent"></span>}
+            </button>
+          ))}
+        </nav>
+      </div>
     </div>
   );
 };
 
-const NavButton = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
+const NavButton = ({ active, onClick, icon, label }: any) => (
   <button 
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${active ? 'bg-trade-accent text-white font-medium' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${active ? 'bg-trade-accent text-white font-medium shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
   >
     {icon}
     <span>{label}</span>
   </button>
+);
+
+const RuleSection = ({ title, items, className }: any) => (
+  <div className={`bg-slate-800 p-5 rounded-lg border border-slate-700 ${className}`}>
+    <h3 className="text-lg font-bold text-white mb-3">{title}</h3>
+    <ul className="space-y-2">
+      {items.map((it: string, idx: number) => (
+        <li key={idx} className="text-sm text-slate-300 flex items-start gap-2">
+          <span className="text-trade-accent mt-1">•</span>
+          {it}
+        </li>
+      ))}
+    </ul>
+  </div>
 );
 
 export default App;

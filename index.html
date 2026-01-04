@@ -2,8 +2,8 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>交易逻辑训练家</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>交易逻辑训练家 - 移动优化版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -26,14 +26,20 @@
       }
     </script>
     <style>
+      :root {
+        --sat: env(safe-area-inset-top);
+        --sab: env(safe-area-inset-bottom);
+      }
       body {
         background-color: #0f172a;
         color: #f1f5f9;
-        font-family: 'Inter', sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        overflow-x: hidden;
+        -webkit-tap-highlight-color: transparent;
       }
       /* Custom Scrollbar */
       ::-webkit-scrollbar {
-        width: 8px;
+        width: 4px;
       }
       ::-webkit-scrollbar-track {
         background: #1e293b;
@@ -41,6 +47,18 @@
       ::-webkit-scrollbar-thumb {
         background: #475569;
         border-radius: 4px;
+      }
+      /* Ensure full height on mobile */
+      html, body, #root {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      .safe-pb {
+        padding-bottom: var(--sab);
+      }
+      input, select, textarea {
+        font-size: 16px !important; /* Prevents auto-zoom on iOS */
       }
     </style>
   <script type="importmap">
@@ -57,5 +75,6 @@
 </head>
   <body>
     <div id="root"></div>
+    <script type="module" src="index.tsx"></script>
   </body>
 </html>

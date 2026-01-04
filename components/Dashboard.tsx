@@ -2,7 +2,7 @@ import React from 'react';
 import { getStats, getTrades, saveTrade, deleteTrade } from '../services/storage';
 import { Trade, TradeStatus, TradeDirection } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Trash2, CheckCircle, XCircle, TrendingUp, Activity, Scale } from 'lucide-react';
+import { Trash2, CheckCircle, XCircle, TrendingUp, Activity, Calendar, Lock, History } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const [trades, setTrades] = React.useState<Trade[]>([]);
@@ -14,7 +14,7 @@ const Dashboard: React.FC = () => {
 
   React.useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 2000);
+    const interval = setInterval(loadData, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -25,76 +25,106 @@ const Dashboard: React.FC = () => {
   };
   
   const handleDelete = (id: string) => {
-      if(confirm('确定要删除这条记录吗？')) {
+      if(confirm('确定删除此记录？')) {
           deleteTrade(id);
           loadData();
       }
   }
 
+  const today = new Date().toISOString().slice(0, 10);
+  const dailyPnLMap: Record<string, number> = {};
+  trades.filter(t => t.status === TradeStatus.CLOSED).forEach(t => {
+      const dateKey = new Date(t.date).toISOString().slice(0, 10);
+      dailyPnLMap[dateKey] = (dailyPnLMap[dateKey] || 0) + (t.pnl || 0);
+  });
+
+  const todayPnL = dailyPnLMap[today] || 0;
+  const DAILY_LOSS_LIMIT = -720; 
+  const isCircuitBreakerActive = todayPnL <= DAILY_LOSS_LIMIT;
+
   const pnlData = trades
     .filter(t => t.status === TradeStatus.CLOSED)
-    .slice(0, 20)
+    .slice(0, 15)
     .reverse()
     .map((t, i) => ({ name: i + 1, pnl: t.pnl }));
 
+  const calendarDays = Array.from({length: 14}, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (13 - i));
+      return d.toISOString().slice(0, 10);
+  });
+
   return (
-    <div className="space-y-8 animate-fadeIn">
-      {/* Primary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="当前权益 (预估)" value={`¥${(18000 + stats.totalPnL).toFixed(0)}`} color="text-white" icon={<TrendingUp size={16} className="text-blue-400"/>} />
-        <StatCard label="总盈亏" value={`¥${stats.totalPnL.toFixed(0)}`} color={stats.totalPnL >= 0 ? "text-trade-success" : "text-trade-danger"} />
-        <StatCard label="胜率" value={`${stats.winRate.toFixed(1)}%`} color={stats.winRate > 50 ? "text-trade-success" : "text-trade-warning"} />
-        <StatCard label="交易次数" value={stats.totalTrades.toString()} color="text-slate-300" />
+    <div className="space-y-6">
+      {/* Risk Alert */}
+      {isCircuitBreakerActive && (
+          <div className="bg-red-500/10 border border-red-500 p-4 rounded-xl flex items-center gap-4 animate-pulse">
+              <Lock className="text-red-500 shrink-0" size={24} />
+              <div className="text-sm">
+                  <h4 className="font-bold text-red-500">风控熔断已激活</h4>
+                  <p className="text-red-300">今日亏损达 ¥{Math.abs(todayPnL)}，请立即停止交易。</p>
+              </div>
+          </div>
+      )}
+
+      {/* Grid Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <StatCard label="当前权益" value={`¥${(18000 + stats.totalPnL).toFixed(0)}`} color="text-white" />
+        <StatCard label="总盈亏" value={`${stats.totalPnL >= 0 ? '+' : ''}¥${stats.totalPnL.toFixed(0)}`} color={stats.totalPnL >= 0 ? "text-trade-success" : "text-trade-danger"} />
+        <StatCard label="今日盈亏" value={`${todayPnL >= 0 ? '+' : ''}¥${todayPnL.toFixed(0)}`} color={todayPnL >= 0 ? "text-trade-success" : "text-trade-danger"} />
+        <StatCard label="胜率" value={`${stats.winRate.toFixed(1)}%`} color={stats.winRate >= 45 ? "text-trade-success" : "text-trade-warning"} />
       </div>
 
-      {/* Advanced Logic Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-slate-800 p-4 rounded border border-slate-700 flex flex-col justify-between">
-             <div>
-                <div className="text-slate-500 text-xs uppercase tracking-wider mb-1 flex items-center gap-2">
-                    <Scale size={14} /> 盈亏因子 (Profit Factor)
-                </div>
-                <div className={`text-2xl font-bold ${stats.profitFactor > 1.5 ? 'text-trade-success' : stats.profitFactor > 1 ? 'text-yellow-400' : 'text-slate-400'}`}>
-                    {stats.profitFactor.toFixed(2)}
-                </div>
-             </div>
-             <p className="text-xs text-slate-500 mt-2">总盈利 / 总亏损。大于 1.5 为优秀系统。</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Calendar - Full on mobile, 2/3 on desktop */}
+          <div className="lg:col-span-2 bg-trade-secondary p-4 rounded-xl border border-slate-800">
+              <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2"><Calendar size={16}/> 14日状态</h3>
+              </div>
+              <div className="grid grid-cols-7 gap-1.5 md:gap-2">
+                  {calendarDays.map(date => {
+                      const val = dailyPnLMap[date];
+                      const isToday = date === today;
+                      return (
+                          <div key={date} className={`h-12 md:h-16 rounded-lg border flex flex-col items-center justify-center ${val > 0 ? 'bg-green-500/10 border-green-500/30' : val < 0 ? 'bg-red-500/10 border-red-500/30' : 'bg-slate-900 border-slate-800'} ${isToday ? 'ring-2 ring-trade-accent' : ''}`}>
+                              <span className="text-[10px] text-slate-600 mb-0.5">{new Date(date).getDate()}</span>
+                              {val !== undefined && <span className={`text-[10px] md:text-xs font-bold ${val > 0 ? 'text-green-500' : 'text-red-500'}`}>{val > 0 ? '+' : ''}{val.toFixed(0)}</span>}
+                          </div>
+                      );
+                  })}
+              </div>
           </div>
 
-          <div className="bg-slate-800 p-4 rounded border border-slate-700 flex flex-col justify-between">
-             <div>
-                <div className="text-slate-500 text-xs uppercase tracking-wider mb-1 flex items-center gap-2">
-                    <Activity size={14} /> 单笔期望值 (Expectancy)
+          <div className="bg-trade-secondary p-4 rounded-xl border border-slate-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-500 uppercase">单笔期望</span>
+                <Activity size={16} className="text-blue-500" />
+              </div>
+              <div className={`text-3xl font-bold ${stats.expectancy > 0 ? 'text-blue-400' : 'text-red-400'}`}>
+                ¥{stats.expectancy.toFixed(1)}
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2 bg-slate-900 rounded border border-slate-800 text-center">
+                   <div className="text-slate-500 mb-1 uppercase tracking-tight">盈亏因子</div>
+                   <div className="text-white font-mono">{stats.profitFactor.toFixed(2)}</div>
                 </div>
-                <div className={`text-2xl font-bold ${stats.expectancy > 0 ? 'text-blue-400' : 'text-red-400'}`}>
-                    ¥{stats.expectancy.toFixed(1)}
+                <div className="p-2 bg-slate-900 rounded border border-slate-800 text-center">
+                   <div className="text-slate-500 mb-1 uppercase tracking-tight">盈亏比</div>
+                   <div className="text-white font-mono">{stats.avgLoss > 0 ? `1:${(stats.avgWin / stats.avgLoss).toFixed(1)}` : '-'}</div>
                 </div>
-             </div>
-             <p className="text-xs text-slate-500 mt-2">长期来看，每做一笔交易预期的平均收益。</p>
-          </div>
-
-          <div className="bg-slate-800 p-4 rounded border border-slate-700 flex flex-col justify-between">
-             <div>
-                <div className="text-slate-500 text-xs uppercase tracking-wider mb-1">平均盈亏比 (Reward:Risk)</div>
-                <div className="text-2xl font-bold text-white">
-                    {stats.avgLoss > 0 ? `1 : ${(stats.avgWin / stats.avgLoss).toFixed(1)}` : "N/A"}
-                </div>
-             </div>
-             <p className="text-xs text-slate-500 mt-2">平均赚一次顶亏几次。建议维持在 1:2 以上。</p>
+              </div>
           </div>
       </div>
 
-      {/* Chart */}
-      <div className="bg-trade-secondary p-6 rounded-lg border border-slate-700">
-        <h3 className="text-white font-bold mb-4">资金曲线 (最近20笔)</h3>
-        <div className="h-64 w-full">
+      {/* Chart - Height optimized for mobile */}
+      <div className="bg-trade-secondary p-4 md:p-6 rounded-xl border border-slate-800">
+        <h3 className="text-sm font-bold text-slate-300 mb-4">资产表现曲线</h3>
+        <div className="h-48 md:h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={pnlData}>
-                    <XAxis dataKey="name" stroke="#64748b" />
-                    <YAxis stroke="#64748b" />
-                    <Tooltip 
-                        contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f1f5f9' }}
-                    />
+                    <XAxis dataKey="name" tick={{fontSize: 10, fill: '#475569'}} axisLine={false} tickLine={false} />
+                    <YAxis tick={{fontSize: 10, fill: '#475569'}} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', fontSize: '12px' }} />
                     <Bar dataKey="pnl">
                         {pnlData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.pnl && entry.pnl > 0 ? '#10b981' : '#ef4444'} />
@@ -105,104 +135,42 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Active Trades */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2">持仓订单 <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">{trades.filter(t => t.status === TradeStatus.OPEN).length}</span></h3>
+      {/* Active Position List */}
+      <div className="space-y-3 pb-4">
+        <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">当前持仓 ({trades.filter(t => t.status === TradeStatus.OPEN).length})</h3>
         {trades.filter(t => t.status === TradeStatus.OPEN).map(trade => (
-            <div key={trade.id} className="bg-slate-800 p-4 rounded-lg border border-l-4 border-slate-700 border-l-trade-accent flex flex-col md:flex-row justify-between items-center gap-4">
-                <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className={`font-bold ${trade.direction === TradeDirection.LONG ? 'text-trade-success' : 'text-trade-danger'}`}>
-                          {trade.direction === TradeDirection.LONG ? '做多' : '做空'}
-                        </span>
-                        <span className="font-mono text-white">{trade.asset}</span>
-                        <span className="text-xs text-slate-500">{new Date(trade.date).toLocaleDateString()}</span>
+            <div key={trade.id} className="bg-slate-800 p-4 rounded-xl border-l-4 border-l-trade-accent border border-slate-700 space-y-4">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${trade.direction === TradeDirection.LONG ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+                              {trade.direction === TradeDirection.LONG ? '多' : '空'}
+                            </span>
+                            <span className="font-bold text-white text-base">{trade.asset}</span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-1">开仓: {trade.entryPrice} | 止损: {trade.stopLossPrice}</div>
                     </div>
-                    <div className="text-sm text-slate-400">
-                        开仓: <span className="text-white">{trade.entryPrice}</span> | 止损: <span className="text-white">{trade.stopLossPrice}</span> | 手数: <span className="text-white">{trade.positionSize}</span>
-                    </div>
+                    <button onClick={() => handleDelete(trade.id)} className="text-slate-600 p-1"><Trash2 size={16}/></button>
                 </div>
                 <div className="flex gap-2">
-                    <button 
-                        onClick={() => {
-                            const profit = Math.abs(trade.entryPrice - trade.stopLossPrice) * trade.contractMultiplier * trade.positionSize * 2; // Target 1:2 approx
-                            closeTrade(trade, profit);
-                        }}
-                        className="bg-trade-success/10 hover:bg-trade-success/20 text-trade-success border border-trade-success/50 px-3 py-1 rounded text-sm flex items-center gap-1"
-                    >
-                        <CheckCircle size={14} /> 止盈离场
+                    <button onClick={() => closeTrade(trade, 720)} className="flex-1 bg-trade-success/10 hover:bg-trade-success/20 text-trade-success border border-trade-success/30 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+                        <CheckCircle size={14} /> 止盈
                     </button>
-                    <button 
-                         onClick={() => {
-                            const loss = -Math.abs(trade.riskAmount);
-                            closeTrade(trade, loss);
-                        }}
-                        className="bg-trade-danger/10 hover:bg-trade-danger/20 text-trade-danger border border-trade-danger/50 px-3 py-1 rounded text-sm flex items-center gap-1"
-                    >
-                        <XCircle size={14} /> 止损离场
+                    <button onClick={() => closeTrade(trade, -360)} className="flex-1 bg-trade-danger/10 hover:bg-trade-danger/20 text-trade-danger border border-trade-danger/30 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+                        <XCircle size={14} /> 止损
                     </button>
-                    <button onClick={() => handleDelete(trade.id)} className="text-slate-600 hover:text-slate-400 p-2"><Trash2 size={16}/></button>
                 </div>
             </div>
         ))}
-        {trades.filter(t => t.status === TradeStatus.OPEN).length === 0 && (
-            <div className="text-center p-8 border border-dashed border-slate-700 rounded-lg text-slate-500">
-                无持仓。耐心是金。
-            </div>
-        )}
       </div>
-
-       {/* History */}
-       <div className="space-y-4">
-        <h3 className="text-xl font-bold text-white">历史记录 (最近5笔)</h3>
-        <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left text-slate-400">
-                <thead className="text-xs uppercase bg-slate-900 text-slate-400">
-                    <tr>
-                        <th className="px-4 py-3">日期</th>
-                        <th className="px-4 py-3">品种</th>
-                        <th className="px-4 py-3">信号</th>
-                        <th className="px-4 py-3">R倍数</th>
-                        <th className="px-4 py-3 text-right">盈亏</th>
-                        <th className="px-4 py-3 text-center">操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {trades.filter(t => t.status === TradeStatus.CLOSED).slice(0, 5).map(trade => {
-                        const rMultiple = trade.pnl && trade.riskAmount ? (trade.pnl / trade.riskAmount).toFixed(1) : '0.0';
-                        return (
-                        <tr key={trade.id} className="border-b border-slate-800 hover:bg-slate-800/50">
-                            <td className="px-4 py-3">{new Date(trade.date).toLocaleDateString()}</td>
-                            <td className="px-4 py-3 font-bold text-white">
-                                <span className={trade.direction === TradeDirection.LONG ? 'text-green-500' : 'text-red-500'}>
-                                  {trade.direction === TradeDirection.LONG ? '多' : '空'}
-                                </span> {trade.asset}
-                            </td>
-                            <td className="px-4 py-3">{trade.entrySignal}</td>
-                            <td className="px-4 py-3 font-mono">{rMultiple}R</td>
-                            <td className={`px-4 py-3 text-right font-bold ${(trade.pnl || 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                {(trade.pnl || 0) > 0 ? '+' : ''}{trade.pnl?.toFixed(0)}
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                                <button onClick={() => handleDelete(trade.id)} className="text-slate-600 hover:text-slate-400"><Trash2 size={14}/></button>
-                            </td>
-                        </tr>
-                    )})}
-                </tbody>
-            </table>
-        </div>
-       </div>
     </div>
   );
 };
 
-const StatCard = ({ label, value, color, icon }: { label: string, value: string, color: string, icon?: React.ReactNode }) => (
-    <div className="bg-trade-secondary p-4 rounded border border-slate-700">
-        <div className="text-slate-500 text-xs uppercase tracking-wider mb-1 flex items-center justify-between">
-            {label}
-            {icon}
-        </div>
-        <div className={`text-2xl font-bold ${color}`}>{value}</div>
+const StatCard = ({ label, value, color }: any) => (
+    <div className="bg-trade-secondary p-4 rounded-xl border border-slate-800">
+        <div className="text-slate-500 text-[10px] uppercase tracking-wider mb-1">{label}</div>
+        <div className={`text-lg md:text-xl font-bold truncate ${color}`}>{value}</div>
     </div>
 );
 

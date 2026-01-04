@@ -31,6 +31,7 @@ export interface ChartDataPoint {
 interface CaseChartProps {
   caseId: string;
   timeframe: 'D1' | 'H1' | '5m';
+  hideAnnotations?: boolean; // New Prop
 }
 
 // Helper: Simple OHLC generator
@@ -289,7 +290,7 @@ const CustomCandleShape = (props: any) => {
     );
 };
 
-const CaseChart: React.FC<CaseChartProps> = ({ caseId, timeframe }) => {
+const CaseChart: React.FC<CaseChartProps> = ({ caseId, timeframe, hideAnnotations }) => {
   let chartData: { data: ChartDataPoint[], annotations: any[] } = { data: [], annotations: [] };
 
   switch(caseId) {
@@ -333,8 +334,8 @@ const CaseChart: React.FC<CaseChartProps> = ({ caseId, timeframe }) => {
             {/* Candles */}
             <Bar dataKey="range" shape={<CustomCandleShape />} isAnimationActive={false} />
 
-            {/* Dynamic Annotations */}
-            {annotations}
+            {/* Dynamic Annotations (Only show if not hidden) */}
+            {!hideAnnotations && annotations}
 
           </ComposedChart>
        </ResponsiveContainer>
